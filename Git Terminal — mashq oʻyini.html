@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Git Terminal — mashq oʻyini</title>
+<style>
+:root{--bg:#0d1117;--p:#161b22;--t:#e6edf3;--m:#8b949e;--g:#3fb950;--b:#58a6ff;--y:#d29922;--r:#f85149;--c:#39c5cf;--bd:#30363d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6f8fa;--p:#fff;--t:#1f2328;--m:#59636e;--g:#1a7f37;--b:#0969da;--y:#9a6700;--r:#cf222e;--c:#1b7c83;--bd:#d0d7de}}
+:root[data-theme="dark"]{--bg:#0d1117;--p:#161b22;--t:#e6edf3;--m:#8b949e;--g:#3fb950;--b:#58a6ff;--y:#d29922;--r:#f85149;--c:#39c5cf;--bd:#30363d}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:8px 12px;background:var(--p);border-bottom:1px solid var(--bd)}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px}
+.bar{height:6px;background:var(--bd);border-radius:3px;margin-top:6px;overflow:hidden}
+#pb{height:100%;width:0;background:var(--g);transition:width .3s}
+#card{margin:8px 10px 0;padding:10px 12px;background:var(--p);border:1px solid var(--bd);border-left:4px solid var(--y);border-radius:8px;font-size:14px;line-height:1.4}
+#card b{color:var(--y)}
+#hbtn{margin-top:6px;background:none;border:1px solid var(--bd);color:var(--b);border-radius:6px;padding:4px 10px;font-size:13px}
+#hint{margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--g);word-break:break-all}
+#term{flex:1;overflow-y:auto;padding:10px 12px;font:14px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;-webkit-overflow-scrolling:touch}
+.l.g{color:var(--g)}.l.r{color:var(--r)}.l.m{color:var(--m)}.l.y{color:var(--y)}
+.pg{color:var(--g)}.py{color:var(--y)}.pc{color:var(--c)}
+#chips{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;border-top:1px solid var(--bd);background:var(--p)}
+#chips button{flex:none;background:var(--bg);color:var(--t);border:1px solid var(--bd);border-radius:14px;padding:6px 11px;font:13px ui-monospace,Menlo,Consolas,monospace}
+#row{display:flex;gap:8px;padding:8px 10px;background:var(--p);border-top:1px solid var(--bd)}
+#in{flex:1;min-width:0;background:var(--bg);color:var(--t);border:1px solid var(--bd);border-radius:8px;padding:10px;font:16px ui-monospace,Menlo,Consolas,monospace}
+#go{background:var(--g);color:#fff;border:0;border-radius:8px;padding:0 16px;font-size:18px}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="top"><span>⌨️ Git Terminal</span><span id="xp">0 XP</span></div><div class="bar"><div id="pb"></div></div></header>
+<div id="card"><div id="mt"></div><button id="hbtn">💡 Maslahat</button><div id="hint" hidden></div></div>
+<div id="term"></div>
+<div id="chips"></div>
+<div id="row"><input id="in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="buyruq yozing…"><button id="go">▶</button></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const M=[
+["Joriy papkadagi fayllarni koʻring.",/^(ls|dir)(\s.*)?$/,"ls"],
+["Yangi papka yarating: darslar",/^mkdir\s+darslar$/,"mkdir darslar"],
+["darslar papkasiga kiring.",/^cd\s+darslar\/?$/,"cd darslar"],
+["Bir papka orqaga chiqing.",/^cd\s+\.\.\/?$/,"cd .."],
+["GitHub loyihasini klon qiling (URL: https://github.com/talaba/loyiha.git).",/^git clone\s+https?:\/\/\S+/,"git clone https://github.com/talaba/loyiha.git"],
+["loyiha papkasiga kiring.",/^cd\s+loyiha\/?$/,"cd loyiha"],
+["Papkadagi fayllarni koʻring.",/^(ls|dir)(\s.*)?$/,"ls"],
+["salom.txt nomli yangi fayl yarating.",/^nano\s+salom\.txt$/,"nano salom.txt"],
+["Git holatini tekshiring.",/^git status$/,"git status"],
+["Barcha oʻzgarishlarni Gitga qoʻshing.",/^git add\s+\.$/,"git add ."],
+["COMMIT qiling. Qisqa tavsif yozing.",/^git commit -m\s+\S+/,'git commit -m "salom.txt qoʻshildi"'],
+["COMMIT larni GitHubga yuboring.",/^git push origin main$/,"git push origin main"],
+["Commitlar tarixini koʻring.",/^git log/,"git log"],
+["Yangi branch yarating va unga oʻting: yangi-funksiya",/^git (checkout -b|switch -c)\s+yangi-funksiya$/,"git checkout -b yangi-funksiya"],
+["Branchlar roʻyxatini koʻring.",/^git branch$/,"git branch"]
+];
+const CH=["ls","cd ","cd ..","mkdir ","nano ","git status","git add .",'git commit -m ""',"git push origin main","git log","git branch","git clone ","pwd","cat ","rm ","clear","help"];
+let S;
+const esc=s=>s;
+function out(t,c){const d=document.createElement("div");d.className="l "+(c||"");d.textContent=t;$("#term").appendChild(d);$("#term").scrollTop=1e9}
+function gn(a){let n=S.root;for(const x of a){if(!n||n.t!="d"||!n.c[x])return null;n=n.c[x]}return n}
+function rs(p){let a=(p[0]=="~"||p[0]=="/")?[]:[...S.cwd];for(const s of p.replace(/^~/,"").split("/")){if(!s||s==".")continue;if(s=="..")a.pop();else a.push(s)}return a}
+function repo(){for(let i=S.cwd.length;i>=0;i--){const n=gn(S.cwd.slice(0,i));if(n.g)return n}return null}
+function flat(n,pre){pre=pre||"";let r={};for(const k in n.c){const c=n.c[k];if(c.t=="f")r[pre+k]=c.v;else Object.assign(r,flat(c,pre+k+"/"))}return r}
+const head=g=>g.commits.length?g.commits[g.commits.length-1].f:{};
+function diff(a,b){const r=[];for(const k in b){if(!(k in a))r.push(["new file",k]);else if(a[k]!=b[k])r.push(["modified",k])}for(const k in a)if(!(k in b))r.push(["deleted",k]);return r}
+const hs=()=>Math.random().toString(16).slice(2,9);
+function pathStr(){return "~"+S.cwd.map(x=>"/"+x).join("")}
+function promptEl(){const r=repo();const d=document.createElement("div");d.className="l";d.innerHTML='<span class="pg">talaba@pc</span> <span class="py">'+pathStr()+'</span>'+(r?' <span class="pc">('+r.g.br+')</span>':"")+" $ ";return d}
+function mkRepo(g){return {commits:[],index:{},br:"main",brs:["main"],rem:null,pushed:0}}
+function git(a){
+ const s=a[1],r=repo();
+ if(s=="init"){const n=gn(S.cwd);if(n.g)return["Reinitialized existing Git repository",1];n.g=mkRepo();return["Initialized empty Git repository in "+pathStr()+"/.git/",1]}
+ if(s=="clone"){
+  if(!a[2]||!/^https?:\/\/\S+/.test(a[2]))return["fatal: URL kerak. Masalan: git clone https://github.com/talaba/loyiha.git",0];
+  const nm=(a[3]||a[2].split("/").pop().replace(/\.git$/,""));const n=gn(S.cwd);
+  if(n.c[nm])return["fatal: '"+nm+"' papkasi mavjud",0];
+  const f={"README.md":"# "+nm+"\n","index.html":"<h1>Salom</h1>\n"};
+  const d={t:"d",c:{"README.md":{t:"f",v:f["README.md"]},"index.html":{t:"f",v:f["index.html"]}}};
+  d.g={commits:[{h:hs(),m:"Initial commit",f:f}],index:Object.assign({},f),br:"main",brs:["main"],rem:a[2],pushed:1};
+  n.c[nm]=d;return["Cloning into '"+nm+"'...\nremote: Enumerating objects: 4, done.\nReceiving objects: 100% (4/4), done.",1]}
+ if(s=="config")return["",1];
+ if(s=="remote"&&a[2]=="add"&&a[4]){if(!r)return["fatal: not a git repository",0];r.g.rem=a[4];return["",1]}
+ if(!r)return["fatal: not a git repository (or any of the parent directories): .git\n(Avval git init yoki git clone qiling)",0];
+ const g=r.g,w=flat(r);
+ if(s=="status"){
+  let o="On branch "+g.br+"\n";const st=diff(head(g),g.index),us=diff(g.index,w).filter(x=>x[0]!="new file"),ut=Object.keys(w).filter(k=>!(k in g.index));
+  if(st.length)o+="\nChanges to be committed:\n"+st.map(x=>"\t"+x[0]+": "+x[1]).join("\n")+"\n";
+  if(us.length)o+="\nChanges not staged for commit:\n"+us.map(x=>"\t"+x[0]+": "+x[1]).join("\n")+"\n";
+  if(ut.length)o+="\nUntracked files:\n"+ut.map(x=>"\t"+x).join("\n")+"\n(git add . bilan qoʻshing)\n";
+  if(!st.length&&!us.length&&!ut.length)o+="nothing to commit, working tree clean";
+  return[o.trim(),1]}
+ if(s=="add"){
+  if(!a[2])return["Nimani qoʻshish kerak? Masalan: git add .",0];
+  if(a[2]=="."||a[2]=="-A"){g.index=Object.assign({},w)}
+  else{const p=r?a[2]:"";if(a[2] in w)g.index[a[2]]=w[a[2]];else if(a[2] in g.index)delete g.index[a[2]];else return["fatal: pathspec '"+a[2]+"' did not match any files",0]}
+  return["",1]}
+ if(s=="commit"){
+  const i=a.indexOf("-m");if(i<0||!a[i+1])return['Xato: xabar yozing. Masalan: git commit -m "tavsif"',0];
+  const ch=diff(head(g),g.index);if(!ch.length)return["nothing to commit, working tree clean\n(avval git add . qiling)",0];
+  const h=hs();g.commits.push({h:h,m:a[i+1],f:Object.assign({},g.index)});
+  return["["+g.br+" "+h+"] "+a[i+1]+"\n "+ch.length+" file(s) changed",1]}
+ if(s=="push"){
+  if(!g.rem)return["fatal: remote yoʻq. Avval: git remote add origin URL",0];
+  if(a[2]!="origin"||!a[3])return["Toʻliq yozing: git push origin main",0];
+  if(g.pushed==g.commits.length)return["Everything up-to-date",1];
+  const n=g.commits.length-g.pushed;g.pushed=g.commits.length;
+  return["Enumerating objects...\nWriting objects: 100%, done.\nTo "+g.rem+"\n   "+g.commits[g.commits.length-1].h+"  "+a[3]+" -> "+a[3]+"\n("+n+" ta commit yuborildi ✔)",1]}
+ if(s=="pull"||s=="fetch")return["Already up to date.",1];
+ if(s=="log"){
+  if(!g.commits.length)return["fatal: hali commit yoʻq",0];
+  const c=[...g.commits].reverse();
+  return[a[2]=="--oneline"?c.map(x=>x.h+" "+x.m).join("\n"):c.map(x=>"commit "+x.h+"\nAuthor: talaba\n\n    "+x.m+"\n").join("\n"),1]}
+ if(s=="branch"){
+  if(!a[2])return[g.brs.map(b=>(b==g.br?"* ":"  ")+b).join("\n"),1];
+  if(g.brs.includes(a[2]))return["fatal: '"+a[2]+"' branch mavjud",0];g.brs.push(a[2]);return["",1]}
+ if(s=="checkout"||s=="switch"){
+  let nw=a[2]=="-b"||a[2]=="-c",b=nw?a[3]:a[2];if(!b)return["Branch nomini yozing",0];
+  if(nw){if(g.brs.includes(b))return["fatal: '"+b+"' branch mavjud",0];g.brs.push(b)}
+  else if(!g.brs.includes(b))return["error: '"+b+"' nomli branch yoʻq",0];
+  g.br=b;return["Switched to"+(nw?" a new":"")+" branch '"+b+"'",1]}
+ return["git: '"+s+"' buyrugʻi bu mashqda yoʻq. help yozing.",0]}
+function run(l){
+ let m=l.match(/^echo\s+(.*?)\s*(>>?)\s*(\S+)$/);
+ if(m){const p=rs(m[3]),nm=p.pop(),d=gn(p),t=m[1].replace(/^["']|["']$/g,"");if(!d||d.t!="d")return["bash: papka topilmadi",0];const f=d.c[nm];if(f&&f.t=="d")return["bash: "+nm+": papka",0];d.c[nm]={t:"f",v:(m[2]==">>"&&f?f.v:"")+t+"\n"};return["",1]}
+ const a=(l.match(/"[^"]*"|'[^']*'|\S+/g)||[]).map(x=>x.replace(/^["']|["']$/g,"")),c=a[0],cw=gn(S.cwd);
+ switch(c){
+ case"help":return["Buyruqlar:\n cd, cd .., ls / dir, pwd, mkdir, touch, nano, cat, echo, rm [-r], mv, clear\n git init, clone, status, add, commit -m, push origin main, pull, log, branch, checkout -b",1];
+ case"pwd":return["/c/Users/talaba"+S.cwd.map(x=>"/"+x).join(""),1];
+ case"whoami":return["talaba",1];
+ case"ls":case"dir":{const n=a[1]&&!a[1].startsWith("-")?gn(rs(a[1])):cw;if(!n)return["ls: yoʻl topilmadi",0];if(n.t=="f")return[a[1],1];const all=a.includes("-a");let k=Object.keys(n.c).map(x=>n.c[x].t=="d"?x+"/":x);if(all&&n.g)k.unshift(".git/");return[k.join("  ")||"(boʻsh papka)",1]}
+ case"cd":{if(!a[1])return["",(S.cwd=[],1)];const p=rs(a[1]),n=gn(p);if(!n)return["bash: cd: "+a[1]+": No such file or directory",0];if(n.t!="d")return["bash: cd: "+a[1]+": Not a directory",0];S.cwd=p;return["",1]}
+ case"mkdir":{if(!a[1])return["mkdir: papka nomini yozing",0];for(const x of a.slice(1)){const p=rs(x),nm=p.pop(),d=gn(p);if(!d)return["mkdir: yoʻl topilmadi",0];if(d.c[nm])return["mkdir: '"+x+"' mavjud",0];d.c[nm]={t:"d",c:{}}}return["",1]}
+ case"touch":case"nano":case"code":{if(!a[1])return[c+": fayl nomini yozing",0];const p=rs(a[1]),nm=p.pop(),d=gn(p);if(!d)return[c+": yoʻl topilmadi",0];const f=d.c[nm];if(f&&f.t=="d")return[c+": bu papka",0];
+  if(f)return[c=="touch"?"":"[nano: "+nm+" ochildi]\n"+f.v,1];
+  d.c[nm]={t:"f",v:c=="touch"?"":"Salom, Git!\n"};return[c=="touch"?"":"[nano: "+nm+" yaratildi]\n(Haqiqiy nanoda matn yozilib, Ctrl+O, Enter, Ctrl+X bosiladi)",1]}
+ case"cat":{const n=a[1]&&gn(rs(a[1]));if(!n)return["cat: fayl topilmadi",0];if(n.t=="d")return["cat: bu papka",0];return[n.v.trim()||"(boʻsh fayl)",1]}
+ case"rm":{const fl=a.filter(x=>x[0]=="-").join(""),t=a.filter((x,i)=>i&&x[0]!="-");if(!t.length)return["rm: nomini yozing",0];for(const x of t){const p=rs(x),nm=p.pop(),d=gn(p);if(!d||!d.c[nm])return["rm: '"+x+"' topilmadi",0];if(d.c[nm].t=="d"&&!/r/.test(fl))return["rm: '"+x+"' papka. rm -r "+x+" yozing",0];delete d.c[nm]}return["",1]}
+ case"mv":{if(!a[2])return["mv: mv eski yangi",0];const p=rs(a[1]),nm=p.pop(),d=gn(p);if(!d||!d.c[nm])return["mv: topilmadi",0];const q=rs(a[2]),dst=gn(q);if(dst&&dst.t=="d")dst.c[nm]=d.c[nm];else{const n2=q.pop(),d2=gn(q);if(!d2)return["mv: yoʻl yoʻq",0];d2.c[n2]=d.c[nm]}delete d.c[nm];return["",1]}
+ case"git":return a[1]?git(a):["git: ichki buyruq yozing. Masalan: git status",0];
+ }
+ return[c+": command not found (help yozing)",0]}
+function card(){const n=M.length;$("#pb").style.width=S.m/n*100+"%";$("#xp").textContent=S.xp+" XP";$("#hint").hidden=true;
+ $("#mt").innerHTML=S.m<n?"<b>Topshiriq "+(S.m+1)+"/"+n+":</b> ":"";
+ if(S.m<n)$("#mt").append(M[S.m][0]);else{$("#mt").textContent="🎉 Barcha topshiriqlar bajarildi! Erkin rejim: istalgan buyruqni sinab koʻring.";$("#hbtn").hidden=true}}
+function exec(l){
+ l=l.trim();const p=promptEl();p.append(l);$("#term").appendChild(p);
+ if(!l){return}
+ S.hist.push(l);S.hi=S.hist.length;
+ if(l=="clear"||l=="cls"){$("#term").innerHTML="";return}
+ const[t,ok]=run(l);if(t)out(t,ok?"":"r");
+ if(ok&&S.m<M.length&&M[S.m][1].test(l)){S.xp+=10;S.m++;out("✔ Zoʻr! +10 XP","g");card();if(S.m==M.length)out("🏆 Siz Git asoslarini oʻrgandingiz!","y")}
+ else if(!ok&&S.m<M.length)out("Maslahat tugmasini bosing 💡","m");
+ $("#term").scrollTop=1e9}
+function start(){S={cwd:[],root:{t:"d",c:{"eslatma.txt":{t:"f",v:"Git — loyiha versiyalarini boshqarish tizimi.\n"}}},xp:0,m:0,hist:[],hi:0};
+ out("Git Bash mashq muhitiga xush kelibsiz!\nBu yerda xato qilish xavfsiz. help — buyruqlar roʻyxati.","y");card()}
+$("#hbtn").onclick=()=>{const h=$("#hint");h.textContent="Yozing: "+M[S.m][2];h.hidden=false;$("#in").value=M[S.m][2]};
+$("#go").onclick=()=>{const i=$("#in");exec(i.value);i.value="";i.focus()};
+$("#in").onkeydown=e=>{if(e.key=="Enter"){$("#go").onclick()}else if(e.key=="ArrowUp"&&S.hi>0){S.hi--;e.target.value=S.hist[S.hi];e.preventDefault()}else if(e.key=="ArrowDown"){S.hi=Math.min(S.hi+1,S.hist.length);e.target.value=S.hist[S.hi]||"";e.preventDefault()}};
+const cb=$("#chips");
+const up=document.createElement("button");up.textContent="↑";up.onclick=()=>{if(S.hi>0){S.hi--;$("#in").value=S.hist[S.hi]}};cb.append(up);
+CH.forEach(x=>{const b=document.createElement("button");b.textContent=x.trim();b.onclick=()=>{const i=$("#in");if(x.endsWith(" ")&&x!="git "){i.value=x}else i.value=x;i.focus();if(x.endsWith('""'))i.setSelectionRange(x.length-1,x.length-1);if(!x.endsWith(" ")&&!x.endsWith('""')){$("#go").onclick()}};cb.append(b)});
+start();
+</script>
+</body>
+</html>
